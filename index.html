@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Русский диктор — озвучка текста</title>
+<style>
+:root{color-scheme:dark;--bg:#0b0b10;--c:#171722;--r:#ff3b2e;--t:#f2f2f6;--m:#9a9aae}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--t);font:16px system-ui,sans-serif;padding:14px;max-width:640px;margin:auto}
+h1{font-size:22px;margin:6px 0 2px}h1 b{color:var(--r)}
+p.s{color:var(--m);font-size:13px;margin-bottom:12px}
+.card{background:var(--c);border-radius:14px;padding:12px;margin-bottom:10px}
+label{display:block;font-size:12px;color:var(--m);margin:8px 0 4px}
+textarea,input,select{width:100%;background:#0e0e16;color:var(--t);border:1px solid #2a2a3a;border-radius:10px;padding:10px;font:inherit}
+textarea{min-height:170px;resize:vertical;font-size:17px;line-height:1.4}
+.row{display:flex;gap:8px}.row>*{flex:1}
+button{background:var(--r);color:#fff;border:0;border-radius:12px;padding:13px;font:600 16px system-ui;width:100%;margin-top:8px}
+button.g{background:#2a2a3a}
+button:disabled{opacity:.5}
+#st{font-size:13px;color:var(--m);margin-top:8px;min-height:18px;white-space:pre-wrap}
+#st.e{color:#ff7b70}
+audio{width:100%;margin-top:10px}
+.tabs{display:flex;gap:6px;margin-bottom:10px}.tabs button{margin:0;padding:10px;font-size:14px;background:#2a2a3a}.tabs button.on{background:var(--r)}
+.h{display:none}
+details{font-size:13px;color:var(--m);margin-top:8px}
+</style></head><body>
+<h1>Русский <b>диктор</b></h1>
+<p class="s">Матни русиро ба овози воқеӣ табдил деҳ — барои видео, рилс ва сериал.</p>
+
+<div class="tabs"><button id="t1" class="on">Gemini (реалӣ)</button><button id="t2">Овози браузер</button></div>
+
+<div class="card">
+<label>Текст (на русском)</label>
+<textarea id="tx">Меня зовут Артём. Мне двадцать девять лет. Обычное утро… обычный вторник. Но сегодня всё изменится.</textarea>
+</div>
+
+<div id="pG" class="card">
+<label>Gemini API-калид (танҳо дар телефони ту нигоҳ дошта мешавад)</label>
+<input id="key" type="password" placeholder="AIza…" autocomplete="off">
+<div class="row">
+<div><label>Овоз</label><select id="vo"></select></div>
+<div><label>Услуб</label><select id="sty"></select></div>
+</div>
+<label>Услуби шахсӣ (ихтиёрӣ, бо забони англисӣ ё русӣ)</label>
+<input id="cs" placeholder="например: шёпотом, тревожно, с хрипотцой">
+<details><summary>Танзимоти иловагӣ</summary>
+<label>Модел</label><input id="md" value="gemini-2.5-flash-preview-tts">
+<label>Паузаи байни ҷумлаҳо (сония)</label><input id="gap" type="number" value="0.3" step="0.1" min="0" max="3">
+</details>
+<button id="go">▶ Озвучить</button>
+</div>
+
+<div id="pB" class="card h">
+<label>Овоз</label><select id="bv"></select>
+<div class="row"><div><label>Суръат</label><input id="rt" type="range" min=".6" max="1.4" step=".05" value=".9"></div>
+<div><label>Баландии садо</label><input id="pt" type="range" min=".3" max="1.6" step=".05" value=".7"></div></div>
+<button id="bgo">▶ Озвучить</button>
+<button id="bst" class="g">■ Стоп</button>
+<p class="s" style="margin-top:8px">Агар овози русӣ набошад: Танзимот → Забон → Матн ба нутқ → «Русский» насб кун.</p>
+</div>
+
+<div id="st"></div>
+<audio id="au" controls class="h"></audio>
+<button id="dl" class="g h">⬇ Скачать WAV</button>
+
+<script>
+const $=id=>document.getElementById(id);
+const VO=[['Charon','мард · паст, ҷиддӣ'],['Orus','мард · устувор'],['Fenrir','мард · пурҷӯш'],['Algenib','мард · хирӯ'],['Puck','мард · бофароғат'],['Kore','зан · устувор'],['Aoede','зан · сабук'],['Leda','зан · ҷавон'],['Zephyr','зан · равшан'],['Gacrux','зан · баркамол']];
+const ST=[['Диктор кино — мрачно, медленно','Read in Russian like a deep, serious movie narrator, slow, dark and dramatic: '],['Спокойно и чётко','Read clearly in Russian in a calm, natural, warm voice: '],['Тревожно, быстро','Read in Russian in a tense, anxious, urgent voice, a little faster: '],['Шёпотом','Whisper in Russian, quietly and scarily: '],['Эмоционально, живо','Read in Russian with strong natural emotion, like a real actor: '],['Без стиля','']];
+VO.forEach(v=>$('vo').add(new Option(v[0]+' — '+v[1],v[0])));
+ST.forEach((v,i)=>$('sty').add(new Option(v[0],i)));
+try{$('key').value=localStorage.gk||'';$('vo').value=localStorage.gv||'Charon';$('sty').value=localStorage.gs||0}catch(e){}
+const st=(m,e)=>{$('st').textContent=m;$('st').className=e?'e':''};
+$('t1').onclick=()=>tab(1);$('t2').onclick=()=>tab(2);
+function tab(n){$('pG').classList.toggle('h',n!=1);$('pB').classList.toggle('h',n!=2);$('t1').classList.toggle('on',n==1);$('t2').classList.toggle('on',n==2)}
+
+function chunks(t){const p=t.replace(/\s+/g,' ').trim().split(/(?<=[.!?…])\s+/),o=[];let c='';for(const s of p){if((c+' '+s).length>500&&c){o.push(c);c=s}else c=c?c+' '+s:s}if(c)o.push(c);return o}
+const b64=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u};
+function wav(pcm,sr){const h=new DataView(new ArrayBuffer(44));const w=(o,s)=>{for(let i=0;i<s.length;i++)h.setUint8(o+i,s.charCodeAt(i))};w(0,'RIFF');h.setUint32(4,36+pcm.length,true);w(8,'WAVEfmt ');h.setUint32(16,16,true);h.setUint16(20,1,true);h.setUint16(22,1,true);h.setUint32(24,sr,true);h.setUint32(28,sr*2,true);h.setUint16(32,2,true);h.setUint16(34,16,true);w(36,'data');h.setUint32(40,pcm.length,true);return new Blob([h,pcm],{type:'audio/wav'})}
+
+$('go').onclick=async()=>{
+const key=$('key').value.trim(),text=$('tx').value.trim();
+if(!key)return st('API-калидро ворид кун (aistudio.google.com → Get API key).',1);
+if(!text)return st('Матн холӣ аст.',1);
+try{localStorage.gk=key;localStorage.gv=$('vo').value;localStorage.gs=$('sty').value}catch(e){}
+const pre=($('cs').value.trim()?'Read in Russian, '+$('cs').value.trim()+': ':ST[$('sty').value][1]);
+const parts=chunks(text),out=[],sr=24000,gap=new Uint8Array(Math.round(sr*2*(+$('gap').value||0)));
+$('go').disabled=true;
+try{
+for(let i=0;i<parts.length;i++){
+st('Сохта истодааст… '+(i+1)+' / '+parts.length);
+const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+$('md').value.trim()+':generateContent?key='+encodeURIComponent(key),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:pre+parts[i]}]}],generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:$('vo').value}}}}})});
+const j=await r.json();
+if(j.error)throw new Error(j.error.message);
+const d=j.candidates&&j.candidates[0]&&j.candidates[0].content.parts.find(p=>p.inlineData);
+if(!d)throw new Error('Аудио нагирифта шуд. Матнро кӯтоҳтар кун ё модели дигар санҷ.');
+out.push(b64(d.inlineData.data),gap);
+}
+const n=out.reduce((a,b)=>a+b.length,0),all=new Uint8Array(n);let o=0;for(const b of out){all.set(b,o);o+=b.length}
+const bl=wav(all,sr),u=URL.createObjectURL(bl);
+$('au').src=u;$('au').classList.remove('h');$('dl').classList.remove('h');
+$('dl').onclick=()=>{const a=document.createElement('a');a.href=u;a.download='ruvoice.wav';a.click()};
+st('Тайёр!');$('au').play().catch(()=>{});
+}catch(e){st('Хато: '+e.message,1)}
+$('go').disabled=false};
+
+// browser voice fallback
+function lv(){const v=speechSynthesis.getVoices().filter(v=>v.lang.toLowerCase().startsWith('ru'));$('bv').innerHTML='';(v.length?v:speechSynthesis.getVoices()).forEach(x=>$('bv').add(new Option(x.name+' ('+x.lang+')',x.name)))}
+try{lv();speechSynthesis.onvoiceschanged=lv}catch(e){}
+$('bgo').onclick=()=>{try{speechSynthesis.cancel();chunks($('tx').value).forEach(t=>{const u=new SpeechSynthesisUtterance(t);u.lang='ru-RU';const v=speechSynthesis.getVoices().find(x=>x.name===$('bv').value);if(v)u.voice=v;u.rate=+$('rt').value;u.pitch=+$('pt').value;speechSynthesis.speak(u)})}catch(e){st('Хато: '+e.message,1)}};
+$('bst').onclick=()=>speechSynthesis.cancel();
+</script></body></html>
